@@ -1,0 +1,12 @@
+body { font-family: system-ui, Arial; background: #0e1a40; color: #eee; margin: 0; }
+.container { max-width: 900px; margin: 20px auto; background: #14295c; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+h1 { background: #c41e3a; padding: 20px; margin: 0; text-align: center; font-size: 2em; }
+p { text-align: center; padding: 0 20px; color: #aaa; }
+#chat { padding: 20px; height: 65vh; overflow-y: auto; background: #14295c; }
+.message { margin: 12px 0; padding: 12px 16px; border-radius: 18px; max-width: 80%; }
+.you { background: #1e40a0; align-self: flex-end; margin-left: auto; }
+.bot { background: #2c4a8c; margin-right: auto; }
+.input-area { display: flex; padding: 20px; background: #0b1a3d; gap: 10px; }
+input { flex: 1; padding: 16px; font-size: 16px; border: none; border-radius: 12px; }
+button { padding: 16px 24px; background: #c41e3a; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+button:hover { background: #e63950; }
