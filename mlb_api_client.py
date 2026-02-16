@@ -1,64 +1,51 @@
 # mlb_api_client.py
 import httpx
 from cachetools import TTLCache
-from datetime import datetime
 
 BASE_URL = "https://statsapi.mlb.com/api/v1"
 cache = TTLCache(maxsize=300, ttl=1800)
 
 class MLBClient:
     def __init__(self):
-        self.client = httpx.AsyncClient(base_url=BASE_URL, timeout=15.0)
+        self.client = None  # Will be set per request
 
     async def _get(self, endpoint: str, params=None):
+        if self.client is None:
+            raise Exception("Client not initialized")
         key = f"{endpoint}:{str(sorted((params or {}).items()))}"
         if cached := cache.get(key):
             return cached
         try:
-            r = await self.client.get(endpoint, params=params)
+            r = await self.client.get(f"{BASE_URL}{endpoint}", params=params, timeout=10.0)
             r.raise_for_status()
             data = r.json()
             cache[key] = data
             return data
-        except:
+        except Exception as e:
+            print("MLB API Error:", e)
             return {}
 
     async def search_player(self, name: str):
-        return await self._get("/people/search", {"name": name, "sportId": 1, "active": True})
+        return await self._get("/people/search", {"name": name, "sportId": 1})
 
     async def get_player(self, player_id: int):
         return await self._get(f"/people/{player_id}", {
-            "hydrate": "team,currentTeam,stats(type=season,currentSeason),injuries,transactions"
-        })
-
-    async def get_player_stats(self, player_id: int, season=None):
-        season = season or datetime.now().year
-        return await self._get(f"/people/{player_id}", {
-            "hydrate": f"stats(group=[hitting,pitching],type=[season,career,yearByYear],season={season})"
+            "hydrate": "team,currentTeam,stats(type=season),injuries,transactions"
         })
 
     async def get_schedule(self, **kwargs):
-        params = {"sportId": 1, "hydrate": "team,linescore,probablePitcher(note),venue", **kwargs}
+        params = {"sportId": 1, "hydrate": "probablePitcher,linescore", **kwargs}
         return await self._get("/schedule", params)
 
-    async def get_game_boxscore(self, game_pk: int):
-        return await self._get(f"/game/{game_pk}/boxscore")
-
     async def get_leaderboard(self, stat: str, season=None, group="hitting", limit=10):
-        season_str = season or (None if season is False else datetime.now().year)
-        params = {
-            "leaderCategories": stat,
-            "statGroup": group,
-            "limit": limit,
-            "hydrate": "person,team"
-        }
-        if season_str:
-            params["season"] = season_str
+        params = {"leaderCategories": stat, "statGroup": group, "limit": limit}
+        if season == False:  # all-time
+            pass
+        elif season:
+            params["season"] = season
+        else:
+            params["season"] = "2025"
         return await self._get("/stats/leaders", params)
 
-    async def get_all_teams(self, season=None):
-        season = season or datetime.now().year
-        return await self._get("/teams", {"sportId": 1, "season": season})
-
-# Global instance
+# Global instance (client will be injected per request)
 mlb = MLBClient()
