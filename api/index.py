@@ -1,23 +1,20 @@
-# api/index.py - FULL VERSION WITH WEB UI
+# api/index.py - FINAL VERCEL-COMPATIBLE VERSION
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import httpx
-import os
 
 # Import your logic
 from question_router import route_question
 
 app = FastAPI()
 
-# Serve static files and templates
+# Mount static and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Use absolute path for templates
 templates = Jinja2Templates(directory="templates")
 
-# Warm client for serverless
+# Shared HTTP client
 _client = None
 async def get_client():
     global _client
@@ -26,17 +23,17 @@ async def get_client():
     return _client
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def root(request: Request):
     return templates.get_template("index.html").render({"request": request})
 
 @app.get("/ask")
 async def ask(q: str = ""):
-    if not q:
-        return {"answer": "Ask me anything about MLB!"}
+    if not q.strip():
+        return JSONResponse({"answer": "Ask me anything about MLB!"})
     try:
         from mlb_api_client import mlb
         mlb.client = await get_client()
         answer = await route_question(q)
-        return {"answer": answer}
+        return JSONResponse({"answer": answer})
     except Exception as e:
-        return {"answer": f"Oops! {str(e)}"}
+        return JSONResponse({"answer": f"Error: {str(e)}"})
